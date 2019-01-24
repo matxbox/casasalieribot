@@ -5,13 +5,8 @@ from telegram.ext import (CommandHandler,MessageHandler,ConversationHandler,Filt
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 import requests
 token='669719701:AAE7F6GdGKw1eVT_fy_8hyRA2_1c3HKxhuQ'
-updater=Updater(token=token)
-dispatcher=updater.dispatcher
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-alleluia=[]
 #%% Funzione di avvio del bot
 def start(bot, update):
-    alleluia.append(update)
     print(update.message.text)
     bot.send_message(chat_id=update.message.chat_id,
                      text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, altrimenti attaccati a sto cazzo')
@@ -97,13 +92,7 @@ def error(bot,update,error):
     bot.send_message(chat_id=update.message.chat_id,text='Qualcosa è andato storto, riprova',reply_markup=ReplyKeyboardRemove())
     csic.clear()
     day.clear()
-convers=ConversationHandler(entry_points=[CommandHandler('occupation',occupation)],
-                            states={0:[MessageHandler(Filters.text & ~ Filters.command,sede)],
-                                    1:[MessageHandler(Filters.text & ~ Filters.command,giorno)]},
-                            fallbacks=[CommandHandler('cancel',cancel)],
-                            allow_reentry=True)
-dispatcher.add_handler(convers)
-dispatcher.add_error_handler(error)
+
 #%% Comando /occupation
 """
 def occupation(bot, update, args):
@@ -117,8 +106,21 @@ dispatcher.add_handler(CommandHandler('occupation',occupation))
 dispatcher.add_handler(messhandler(Filters.text,placeholder))
 """
 #%% Avvia il bot
-updater.start_polling()
-updater.idle()
+def avvio():
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+    updater=Updater(token=token)
+    dispatcher=updater.dispatcher
+    convers=ConversationHandler(entry_points=[CommandHandler('occupation',occupation)],
+                            states={0:[MessageHandler(Filters.text & ~ Filters.command,sede)],
+                                    1:[MessageHandler(Filters.text & ~ Filters.command,giorno)]},
+                            fallbacks=[CommandHandler('cancel',cancel)],
+                            allow_reentry=True)
+    dispatcher.add_handler(convers)
+    dispatcher.add_error_handler(error)
+    updater.start_polling()
+    updater.idle()
+if __name__=='__main__':
+    avvio()
 #%% chatids
 #252089415 tia
 #60099501 ale
