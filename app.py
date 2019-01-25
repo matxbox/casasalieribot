@@ -10,9 +10,12 @@ def start(bot, update):
     print(update.message.text)
     bot.send_message(chat_id=update.message.chat_id,
                      text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, altrimenti attaccati a sto cazzo')
-start_handler=CommandHandler('start', start)
-dispatcher.add_handler(start_handler)
 #%% vars
+csickey=[['Milano Bovisa', 'La Masa','Candiani'],
+         ['Milano Leonardo'],
+         ['Como', 'Lecco'],
+         ['Cremona','Mantova','Piacenza']]
+daykey=[['Oggi'],['Domani'],['Dopodomani']]
 csicdict={'Milano Bovisa': 'MIB',
           'La Masa':'MIB01',
           'Candiani':'MIB02',
@@ -25,26 +28,38 @@ csicdict={'Milano Bovisa': 'MIB',
 csic=[]
 day=[]
 #%% Conversation Handler
+def preparafile(sede,giorno):
+    daytemp=giorno[0]
+    urlkeys={'csic':sede[0],
+             'categoria':'tutte',
+             'tipologia':'tutte',
+             'giorno_day':str(daytemp.day),
+             'giorno_month':str(daytemp.month),
+             'giorno_year':str(daytemp.year),
+             'jaf_giorno_date_format':'dd%2FMM%2Fyyyy',
+             'evn_visualizza':'Visualizza+occupazioni'}
+    webpage=requests.get('https://www7.ceda.polimi.it/spazi/spazi/controller/OccupazioniGiornoEsatto.do',params=urlkeys)
+    oldcontent=webpage.content
+    newcontent=oldcontent.replace(b'/spazi/table-MOZ.css',b'https://www7.ceda.polimi.it/spazi/table-MOZ.css')
+    with open('occupazioni.html','wb') as page:
+        page.write(newcontent)
+    return 'occupazioni.html'
 def occupation(bot,update):
     logging.info('user @%s said %s',update.message.from_user.username,update.message.text)
-    csickey=[['Milano Bovisa', 'La Masa','Candiani'],
-             ['Milano Leonardo'],
-             ['Como', 'Lecco'],
-             ['Cremona','Mantova','Piacenza']]
     bot.send_message(chat_id=update.message.chat_id,
                      text='Scegli il tuo campus o usa il comando /cancel per annullare',
                      reply_markup=ReplyKeyboardMarkup(csickey,True,True))
     return 0
 def sede(bot,update):
-    daykey=[['Oggi'],['Domani'],['Dopodomani']]
-    logging.info('user @%s said %s',update.message.from_user.username,update.message.text)
     csic.append(csicdict.get(update.message.text))
     if csic==[None]:
-        bot.send_message(chat_id=update.message.chat_id,text='Qualcosa è andato storto, riprova',reply_markup=ReplyKeyboardRemove())
+        logging.warning('user @%s said %s',update.message.from_user.username,update.message.text)
+        bot.send_message(chat_id=update.message.chat_id,text='Qualcosa è andato storto, riprova',reply_markup=ReplyKeyboardMarkup(csickey,True,True))
         csic.clear()
         day.clear()
-        return ConversationHandler.END
+        return 0
     else:
+        logging.info('user @%s said %s',update.message.from_user.username,update.message.text)
         bot.send_message(chat_id=update.message.chat_id,
                  text='Scegli il giorno',
                  reply_markup=ReplyKeyboardMarkup(daykey,True,True))
@@ -55,29 +70,15 @@ def giorno(bot,update):
              'Domani':date.fromtimestamp(time()+3600*24),
              'Dopodomani':date.fromtimestamp(time()+3600*48)}
     day.append(daydict.get(update.message.text))
-    daytemp=day[0]
-    try:
-        urlkeys={'csic':csic[0],
-                 'categoria':'tutte',
-                 'tipologia':'tutte',
-                 'giorno_day':str(daytemp.day),
-                 'giorno_month':str(daytemp.month),
-                 'giorno_year':str(daytemp.year),
-                 'jaf_giorno_date_format':'dd%2FMM%2Fyyyy',
-                 'evn_visualizza':'Visualizza+occupazioni'}
-        webpage=requests.get('https://www7.ceda.polimi.it/spazi/spazi/controller/OccupazioniGiornoEsatto.do',params=urlkeys)
-        oldcontent=webpage.content
-        newcontent=oldcontent.replace(b'/spazi/table-MOZ.css',b'https://www7.ceda.polimi.it/spazi/table-MOZ.css')
-        with open('occupazioni.html','wb') as page:
-            page.write(newcontent)
-        with open('occupazioni.html','rb') as sendpage:
-            bot.send_document(chat_id=update.message.chat_id,document=sendpage,reply_markup=ReplyKeyboardRemove())
-        csic.clear()
+    if day==[None]:
+        logging.warning('user @%s said %s',update.message.from_user.username,update.message.text)
+        bot.send_message(chat_id=update.message.chat_id,text='Qualcosa è andato storto, riprova',reply_markup=ReplyKeyboardMarkup(daykey,True,True))
         day.clear()
-        return ConversationHandler.END
-    except AttributeError:
-        logging.warning('user @%s said %s and something wrong happened',update.message.from_user.username,update.message.text)
-        bot.send_message(chat_id=update.message.chat_id,text='Qualcosa è andato storto, riprova',reply_markup=ReplyKeyboardRemove())
+        return 1
+    else:
+        nomefile=preparafile(csic,day)
+        with open(nomefile,'rb') as sendpage:
+            bot.send_document(chat_id=update.message.chat_id,document=sendpage,reply_markup=ReplyKeyboardRemove())
         csic.clear()
         day.clear()
         return ConversationHandler.END
@@ -107,6 +108,7 @@ dispatcher.add_handler(messhandler(Filters.text,placeholder))
 """
 #%% Avvia il bot
 def avvio():
+    print('running')
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
     updater=Updater(token=token)
     dispatcher=updater.dispatcher
@@ -115,6 +117,8 @@ def avvio():
                                     1:[MessageHandler(Filters.text & ~ Filters.command,giorno)]},
                             fallbacks=[CommandHandler('cancel',cancel)],
                             allow_reentry=True)
+    start_handler=CommandHandler('start', start)
+    dispatcher.add_handler(start_handler)
     dispatcher.add_handler(convers)
     dispatcher.add_error_handler(error)
     updater.start_polling()
