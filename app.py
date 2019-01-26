@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import (date,datetime)
 from time import time
 from telegram.ext import (CommandHandler,MessageHandler,ConversationHandler,Filters,Updater)
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
@@ -94,21 +94,9 @@ def error(bot,update,error):
     csic.clear()
     day.clear()
 
-#%% Comando /occupation
-"""
-def occupation(bot, update, args):
-    bot.send_message(chat_id=update.message.chat_id,text='scegli cosa preferisci',reply_markup=ReplyKeyboardMarkup(keyboard=buttons,resize_keyboard=True))
-#def occ_details(bot,update):
-#    bot.send_message(chat_id=update.message.chat_id,text='Scegli la sede'
-    
-    with open('laltra.jpg','rb') as image:
-        bot.send_photo(chat_id=update.message.chat_id,photo=image,reply_to_message_id=update.message.message_id,reply_markup=ReplyKeyboardRemove)
-dispatcher.add_handler(CommandHandler('occupation',occupation))
-dispatcher.add_handler(messhandler(Filters.text,placeholder))
-"""
 #%% Avvia il bot
 def avvio():
-    print('running')
+    logging.info('RUNNING')
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
     updater=Updater(token=token)
     dispatcher=updater.dispatcher
