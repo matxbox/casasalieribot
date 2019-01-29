@@ -1,10 +1,10 @@
 import logging
+import time
 from datetime import date
-from time import time
 from telegram.ext import (CommandHandler, MessageHandler, ConversationHandler, Filters, Updater)
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
-import requests
-
+from requests import get
+from os import environ
 #%% vars
 token = '633258565:AAHXlsA5cQklnLcZ8tg125LZjhGCLc0_hQc'
 csickey = [['Milano Bovisa', 'La Masa', 'Candiani'],
@@ -21,16 +21,26 @@ csicdict = {'Milano Bovisa': 'MIB',
 			'Lecco': 'LCF',
 			'Mantova': 'MNI',
 			'Piacenza': 'PCL'}
+daydict = {'Oggi': date.fromtimestamp(time.time()),
+		   'Domani': date.fromtimestamp(time.time()+3600*24),
+		   'Dopodomani': date.fromtimestamp(time.time()+3600*48)}
 csic = []
 day = []
 #%% Comando /start
 
 
 def start(bot, update):
-	print(update.message.text)
+	logging.info('@%s started with %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, ' +
 						  'altrimenti attaccati a sto cazzo')
+
+#%% General handler
+
+
+# noinspection PyUnusedLocal
+def generalupdate(bot, update):
+	logging.info('@%s: %s', update.message.from_user.username, update.message.text)
 
 #%% Conversation Handler
 
@@ -46,7 +56,7 @@ def preparafile(luogo, periodo):
 			   'jaf_giorno_date_format': 'dd%2FMM%2Fyyyy',
 			   'evn_visualizza': 'Visualizza+occupazioni'}
 	url = 'https://www7.ceda.polimi.it/spazi/spazi/controller/OccupazioniGiornoEsatto.do'
-	webpage = requests.get(url, params=urlkeys)
+	webpage = get(url, params=urlkeys)
 	content = webpage.text
 	startpoint = content.find('<table cellpadding="0" cellspacing="0" class="scrollTable"')
 	endpoint = content.find('</table>', startpoint)
@@ -64,7 +74,7 @@ def preparafile(luogo, periodo):
 
 
 def occupation(bot, update):
-	logging.info('user @%s said %s', update.message.from_user.username, update.message.text)
+	logging.info('CONVSTART @%s: %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Scegli il tuo campus o usa il comando /cancel per annullare',
 					 reply_markup=ReplyKeyboardMarkup(csickey, True, True))
@@ -74,15 +84,15 @@ def occupation(bot, update):
 def sede(bot, update):
 	csic.append(csicdict.get(update.message.text))
 	if csic == [None]:
-		logging.warning('user @%s said %s', update.message.from_user.username, update.message.text)
+		logging.warning('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
-						 text='Qualcosa è andato storto, riprova',
+						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(csickey, True, True))
 		csic.clear()
 		day.clear()
 		return 0
 	else:
-		logging.info('user @%s said %s', update.message.from_user.username, update.message.text)
+		logging.info('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Scegli il giorno',
 						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
@@ -90,19 +100,16 @@ def sede(bot, update):
 
 
 def giorno(bot, update):
-	logging.info('user @%s said %s', update.message.from_user.username, update.message.text)
-	daydict = {'Oggi': date.fromtimestamp(time()),
-			   'Domani': date.fromtimestamp(time()+3600*24),
-			   'Dopodomani': date.fromtimestamp(time()+3600*48)}
 	day.append(daydict.get(update.message.text))
 	if day == [None]:
-		logging.warning('user @%s said %s', update.message.from_user.username, update.message.text)
+		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
-						 text='Qualcosa è andato storto, riprova',
+						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
 		day.clear()
 		return 1
 	else:
+		logging.info('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		nomefile = preparafile(csic, day)
 		with open(nomefile, 'rb') as sendpage:
 			bot.send_document(chat_id=update.message.chat_id, document=sendpage, reply_markup=ReplyKeyboardRemove())
@@ -123,9 +130,9 @@ def cancel(bot, update):
 
 def error(bot, update, errore):
 	print(errore)
-	logging.warning('user @%s said %s', update.message.from_user.username, update.message.text)
+	logging.critical('TELEGRAMERROR @%s: %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
-					 text='Qualcosa è andato storto, riprova',
+					 text='Qualcosa è andato storto, ricomincia da capo',
 					 reply_markup=ReplyKeyboardRemove())
 	csic.clear()
 	day.clear()
@@ -134,21 +141,30 @@ def error(bot, update, errore):
 
 
 def avvio():
-	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-	logging.info('RUNNING')
-	updater = Updater(token=token)
-	dispatcher = updater.dispatcher
-	convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
-								  states={0: [MessageHandler(Filters.text & ~ Filters.command, sede)],
-										  1: [MessageHandler(Filters.text & ~ Filters.command, giorno)]},
-								  fallbacks=[CommandHandler('cancel', cancel)],
-								  allow_reentry=True)
-	start_handler = CommandHandler('start', start)
-	dispatcher.add_handler(start_handler)
-	dispatcher.add_handler(convers)
-	dispatcher.add_error_handler(error)
-	updater.start_polling()
-	updater.idle()
+	try:
+		environ['TZ'] = 'Europe/Rome'
+		time.tzset()
+		platf = 'UNIX'
+	except AttributeError:
+		platf = 'WIN'
+	finally:
+		logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+		logging.info('RUNNING on '+platf)
+		updater = Updater(token=token)
+		dispatcher = updater.dispatcher
+		convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
+									  states={0: [MessageHandler(Filters.text & ~ Filters.command, sede)],
+											  1: [MessageHandler(Filters.text & ~ Filters.command, giorno)]},
+									  fallbacks=[CommandHandler('cancel', cancel)],
+									  allow_reentry=True)
+		start_handler = CommandHandler('start', start)
+		general = MessageHandler(Filters.all, generalupdate)
+		dispatcher.add_handler(start_handler)
+		dispatcher.add_handler(convers)
+		dispatcher.add_handler(general)
+		dispatcher.add_error_handler(error)
+		updater.start_polling()
+		updater.idle()
 
 
 if __name__ == '__main__':
