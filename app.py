@@ -6,7 +6,7 @@ from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 import requests
 
 #%% vars
-token = '669719701:AAE7F6GdGKw1eVT_fy_8hyRA2_1c3HKxhuQ'
+token = '633258565:AAHXlsA5cQklnLcZ8tg125LZjhGCLc0_hQc'
 csickey = [['Milano Bovisa', 'La Masa', 'Candiani'],
 		   ['Milano Leonardo'],
 		   ['Como', 'Lecco'],
@@ -156,3 +156,5 @@ if __name__ == '__main__':
 #%% chatids
 #252089415 tia
 #60099501 ale
+#91878464 bionda
+#215417816 nana
