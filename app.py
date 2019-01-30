@@ -21,9 +21,9 @@ csicdict = {'Milano Bovisa': 'MIB',
 			'Lecco': 'LCF',
 			'Mantova': 'MNI',
 			'Piacenza': 'PCL'}
-daydict = {'Oggi': date.fromtimestamp(time.time()),
-		   'Domani': date.fromtimestamp(time.time()+3600*24),
-		   'Dopodomani': date.fromtimestamp(time.time()+3600*48)}
+daydict = {'Oggi': 0,
+		   'Domani': 3600*24,
+		   'Dopodomani': 3600*48}
 csic = []
 day = []
 #%% Comando /start
@@ -100,15 +100,8 @@ def sede(bot, update):
 
 
 def giorno(bot, update):
-	day.append(daydict.get(update.message.text))
-	if day == [None]:
-		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
-		bot.send_message(chat_id=update.message.chat_id,
-						 text='Non ho capito, riprova',
-						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
-		day.clear()
-		return 1
-	else:
+	try:
+		day.append(date.fromtimestamp(time.time()+daydict.get(update.message.text)))
 		logging.info('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		nomefile = preparafile(csic, day)
 		with open(nomefile, 'rb') as sendpage:
@@ -116,6 +109,13 @@ def giorno(bot, update):
 		csic.clear()
 		day.clear()
 		return ConversationHandler.END
+	except TypeError:
+		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
+		bot.send_message(chat_id=update.message.chat_id,
+						 text='Non ho capito, riprova',
+						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
+		day.clear()
+		return 1
 
 
 def cancel(bot, update):
