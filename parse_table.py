@@ -6,7 +6,10 @@ rows = parsed.find_all(class_='normalRow')[1:]
 
 def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activity]}
 	row.td.decompose()  # Delete date cell
-	room = row.td.extract().a.string[1:-2]  #[1:-2] strips white spaces
+	try:
+		room = row.td.extract().a.string[1:-2]  #[1:-2] strips white spaces
+	except AttributeError:
+		return 'Duplicate row', None
 #	print(room)
 	# The row obj now contains only relevant information
 	events_ending_times = [(480, None)]
@@ -36,9 +39,11 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 #		print('Slot di {} minuti per {}'.format(minutes, activity))
 	return room, events_ending_times
 
-first, second, third = rows[0], rows[1], rows[2]
+rows = rows[38:]
 rooms = {}
-for row in first, second, third:
+for row in rows:
 	room, occupation = occupation_of_room(row)
 	rooms[room]=occupation
+if 'Duplicate row' in rooms.keys():
+	del rooms['Duplicate row']
 print('Exit')
