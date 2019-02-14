@@ -1,3 +1,5 @@
+import datetime
+
 import bs4
 
 with open('occupazioni.html', 'r') as htmlfile:
@@ -9,13 +11,13 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 	def add_15m_free(): # List with (time, ending event name) tuples
 		nonlocal events_duration
 		if len(events_duration) == 0:
-			events_duration.append((15, None))
+			events_duration.append((15, 'Vuota'))
 			return
 		lastduration, lastevent = events_duration[-1]
-		if lastevent==None:
+		if lastevent == 'Vuota':
 			events_duration[-1] = (lastduration + 15, lastevent)
 		else:
-			events_duration.append((15, None))
+			events_duration.append((15, 'Vuota'))
 
 	for tag in row.children:
 		if tag.attrs['class'] == ['slot']:
@@ -33,7 +35,19 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 	return events_duration
 
 
-rows = rows[:2]
+def print_string_of_occupation(name, roomdata):
+	output_list = []
+	output_list.append(name + '\n')
+	currenttime = datetime.datetime(1, 1, 1, hour=8, minute=00)
+	for duration, event in roomdata:
+		if event[-8:] == '(ESAME) ':
+			event = 'Esame'
+		output_list.append(currenttime.time().isoformat(timespec='minutes') + ' ' + event + '\n')
+		currenttime = currenttime + datetime.timedelta(minutes=duration)
+	output_list.append('\n')
+	return output_list
+
+
 rooms = {}
 while len(rows) != 0:
 	row = rows.pop(0)
@@ -50,4 +64,9 @@ while len(rows) != 0:
 	else:
 		rooms[room] = occupation
 
+text_list = []
+for room, roomdata in rooms.items():
+	text_list.extend(print_string_of_occupation(room, roomdata))
+with open('messaggio.txt', 'w+') as outputfile:
+	outputfile.writelines(text_list)
 exit()
