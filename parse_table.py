@@ -23,6 +23,8 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 		if tag.attrs['class'] == ['slot']:
 			length = int(tag.attrs['colspan']) * 15
 			activity = tag.string
+			if activity[-8:] == '(ESAME) ':
+				activity = 'Esame'
 			events_duration.append((length, activity))
 		elif tag.attrs['class'] in (['empty'], ['empty_prima']):
 			add_15m_free()
@@ -40,8 +42,6 @@ def print_string_of_occupation(name, roomdata):
 	output_list.append(name + '\n')
 	currenttime = datetime.datetime(1, 1, 1, hour=8, minute=00)
 	for duration, event in roomdata:
-		if event[-8:] == '(ESAME) ':
-			event = 'Esame'
 		output_list.append(currenttime.time().isoformat(timespec='minutes') + ' ' + event + '\n')
 		currenttime = currenttime + datetime.timedelta(minutes=duration)
 	output_list.append('\n')
