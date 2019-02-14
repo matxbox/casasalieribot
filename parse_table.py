@@ -5,26 +5,24 @@ with open('occupazioni.html', 'r') as htmlfile:
 rows = parsed.find_all(class_='normalRow')[1:]
 
 def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activity]}
-	events_ending_times = [(480, None)]
+	events_duration = []
 	def add_15m_free(): # List with (time, ending event name) tuples
-		nonlocal events_ending_times
-		lasttime, lastevent = events_ending_times[-1]
+		nonlocal events_duration
+		if len(events_duration) == 0:
+			events_duration.append((15, None))
+			return
+		lastduration, lastevent = events_duration[-1]
 		if lastevent==None:
-			events_ending_times[-1] = (lasttime+15, lastevent)
+			events_duration[-1] = (lastduration + 15, lastevent)
 		else:
-			events_ending_times.append((lasttime+15, None))
-	def add_long_event(length, activity):
-		nonlocal events_ending_times
-		lasttime, lastevent = events_ending_times[-1]
-		events_ending_times.append((lasttime+length, activity))
+			events_duration.append((15, None))
+
 	for tag in row.children:
 		if tag.attrs['class'] == ['slot']:
-			minutes = int(tag.attrs['colspan'])*15
+			length = int(tag.attrs['colspan']) * 15
 			activity = tag.string
-			add_long_event(minutes, activity)
+			events_duration.append((length, activity))
 		elif tag.attrs['class'] in (['empty'], ['empty_prima']):
-			minutes = 15
-			activity = '[vuoto]'
 			add_15m_free()
 		elif tag.attrs['class'] in (['data'], ['dove']):
 			continue
@@ -32,9 +30,10 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 			raise Error('Tag imprevisto!')
 			print(str(tag))
 #		print('Slot di {} minuti per {}'.format(minutes, activity))
-	return events_ending_times
+	return events_duration
 
 
+rows = rows[:2]
 rooms = {}
 while len(rows) != 0:
 	row = rows.pop(0)
