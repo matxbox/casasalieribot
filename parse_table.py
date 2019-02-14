@@ -5,15 +5,7 @@ with open('occupazioni.html', 'r') as htmlfile:
 rows = parsed.find_all(class_='normalRow')[1:]
 
 def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activity]}
-	row.td.decompose()  # Delete date cell
-	try:
-		room = row.td.extract().a.string[1:-2]  #[1:-2] strips white spaces
-	except AttributeError:
-		return 'Duplicate row', None
-#	print(room)
-	# The row obj now contains only relevant information
 	events_ending_times = [(480, None)]
-
 	def add_15m_free(): # List with (time, ending event name) tuples
 		nonlocal events_ending_times
 		lasttime, lastevent = events_ending_times[-1]
@@ -34,17 +26,29 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 			minutes = 15
 			activity = '[vuoto]'
 			add_15m_free()
+		elif tag.attrs['class'] in (['data'], ['dove']):
+			continue
 		else:
+			raise Error('Tag imprevisto!')
 			print(str(tag))
 #		print('Slot di {} minuti per {}'.format(minutes, activity))
-	return room, events_ending_times
+	return events_ending_times
 
 
-rows = rows
 rooms = {}
-for row in rows:
-	room, occupation = occupation_of_room(row)
-	rooms[room]=occupation
-if 'Duplicate row' in rooms.keys():
-	del rooms['Duplicate row']
-print('Exit')
+while len(rows) != 0:
+	row = rows.pop(0)
+	if row.find(name='td', class_='dove') is not None:
+		room = row.find(name='td', class_='dove').a.string[1:-2]
+	occupation = occupation_of_room(row)
+	if room in rooms.keys():
+		for i in range(1, 10):
+			if '_'.join([room, str(i)]) in rooms.keys():
+				continue
+			else:
+				rooms['_'.join([room, str(i)])] = occupation
+				break
+	else:
+		rooms[room] = occupation
+
+exit()
