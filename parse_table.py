@@ -39,7 +39,8 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 #		print('Slot di {} minuti per {}'.format(minutes, activity))
 	return room, events_ending_times
 
-rows = rows[38:]
+
+rows = rows
 rooms = {}
 for row in rows:
 	room, occupation = occupation_of_room(row)
