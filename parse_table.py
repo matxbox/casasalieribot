@@ -6,7 +6,8 @@ with open('occupazioni.html', 'r') as htmlfile:
 	parsed = bs4.BeautifulSoup(htmlfile, 'html.parser', parse_only=bs4.SoupStrainer(class_='scrollContent', name='tbody'))
 rows = parsed.find_all(class_='normalRow')[1:]
 
-def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activity]}
+
+def parse_row_get_occupation(row):
 	events_duration = []
 	def add_15m_free(): # List with (time, ending event name) tuples
 		nonlocal events_duration
@@ -33,7 +34,7 @@ def occupation_of_room(row): # Returns single key dict: {room:[changes_of_activi
 		else:
 			raise Error('Tag imprevisto!')
 			print(str(tag))
-#		print('Slot di {} minuti per {}'.format(minutes, activity))
+	# 		print('Slot di {} minuti per {}'.format(minutes, activity))
 	return events_duration
 
 
@@ -53,7 +54,7 @@ while len(rows) != 0:
 	row = rows.pop(0)
 	if row.find(name='td', class_='dove') is not None:
 		room = row.find(name='td', class_='dove').a.string[1:-2]
-	occupation = occupation_of_room(row)
+	occupation = parse_row_get_occupation(row)
 	if room in rooms.keys():
 		for i in range(1, 10):
 			if '_'.join([room, str(i)]) in rooms.keys():
