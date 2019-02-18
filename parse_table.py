@@ -49,22 +49,26 @@ def print_string_of_occupation(name, roomdata):
 	return output_list
 
 
+# Itera su tutte le righe per generare il dizionario 'rooms'
 rooms = {}
 while len(rows) != 0:
 	row = rows.pop(0)
-	if row.find(name='td', class_='dove') is not None:
-		room = row.find(name='td', class_='dove').a.string[1:-2]
-	occupation = parse_row_get_occupation(row)
-	if room in rooms.keys():
-		for i in range(1, 10):
+	if row.find(name='td', class_='dove') is not None:  # Se la riga contiene l'indicazione dell'aula...
+		room = row.find(name='td', class_='dove').a.string[
+		       1:-2]  # ...considera quello come il nome dell'attuale aula...
+	occupation = parse_row_get_occupation(row)  # ...e interpreta la riga. Ora abbiamo nome e dati, vanno salvati
+	if room in rooms.keys():  # Se la riga non ha il nome dell'aula usa il nome precedente
+		for i in range(1, 10):  # e salvalo nel dizionario aggiungendo _1, _2 eccetera
 			if '_'.join([room, str(i)]) in rooms.keys():
 				continue
 			else:
 				rooms['_'.join([room, str(i)])] = occupation
 				break
 	else:
-		rooms[room] = occupation
+		rooms[room] = occupation  # Se invece va tutto bene, salva semplicemente
+# Qui tutti i dati sono stati interpretati e salvati in 'rooms', un dizionario {nomeaula: listaoccupazioni}
 
+# Genera il testo a partire dal dizionario 'rooms' e al posto di inviarlo per messaggio lo salva in un file
 text_list = []
 for room, roomdata in rooms.items():
 	text_list.extend(print_string_of_occupation(room, roomdata))
