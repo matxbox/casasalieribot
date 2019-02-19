@@ -26,22 +26,17 @@ daydict = {'Oggi': 0,
 		   'Dopodomani': 3600*48}
 csic = []
 day = []
-#%% Comando /start
 
 
 def start(bot, update):
 	logging.info('@%s started with %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
-					 text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, ' +
-
-#%% General handler
+					 text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, ')
 
 
 # noinspection PyUnusedLocal
 def generalupdate(bot, update):
 	logging.info('@%s: %s', update.message.from_user.username, update.message.text)
-
-#%% Conversation Handler
 
 
 def preparafile(luogo, periodo):
@@ -136,8 +131,6 @@ def error(bot, update, errore):
 	csic.clear()
 	day.clear()
 
-#%% Avvia il bot
-
 
 def avvio():
 	try:
@@ -148,7 +141,7 @@ def avvio():
 		platf = 'WIN'
 	finally:
 		logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-		logging.info('RUNNING on '+platf)
+		logging.info('RUNNING on ' + platf)
 		updater = Updater(token=token)
 		dispatcher = updater.dispatcher
 		convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
@@ -168,8 +161,10 @@ def avvio():
 
 if __name__ == '__main__':
 	avvio()
-#%% chatids
-#252089415 tia
-#60099501 ale
-#91878464 bionda
-#215417816 nana
+"""
+chatids
+252089415 tia
+60099501 ale
+91878464 bionda
+215417816 nana
+"""
