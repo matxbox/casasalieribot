@@ -33,7 +33,6 @@ def start(bot, update):
 	logging.info('@%s started with %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Per ricevere la situazione delle aule nel tuo campus usa il comando /occupation, ' +
-						  'altrimenti attaccati a sto cazzo')
 
 #%% General handler
 
