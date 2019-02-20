@@ -2,6 +2,8 @@ from geopy import distance as geodist
 import csv
 
 class Aule:
+	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
+
 	tutte = {}
 
 	def __init__(self, nome, edificio, disegno, prese):
@@ -70,6 +72,7 @@ class Aule:
 		print('Edificio ' + str(self.edificio) + ' riordinato')
 
 class Edificio:
+	'Crea un nuovo edificio dati un nome e una tupla (lat, long)'
 	tutti = {}
 
 	def aggiungi_aula(self, nome, disegno, prese):
