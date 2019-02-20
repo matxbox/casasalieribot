@@ -8,3 +8,7 @@ messaggio.txt
 /casasalieribot.pyproj
 /casasalieribot.sln
 /casasalieribot.pyproj.user
+
+.venv
+.vscode
+*.code-workspace
