@@ -1,13 +1,12 @@
 from geopy import distance as geodist
 import csv
 
-class Aule:
+all_rooms = {}
+class Aula:
 	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
 
-	tutte = {}
-
 	def __init__(self, nome, edificio, disegno, prese):
-		self.tutte[nome] = self
+		all_rooms[nome] = self
 		self.nome = nome
 		self.edificio = edificio
 		self.disegno = disegno
@@ -71,17 +70,17 @@ class Aule:
 		self.edificio.aule.sort(reverse=True)
 		print('Edificio ' + str(self.edificio) + ' riordinato')
 
+all_buildings = {}
 class Edificio:
 	'Crea un nuovo edificio dati un nome e una tupla (lat, long)'
-	tutti = {}
-
+	
 	def aggiungi_aula(self, nome, disegno, prese):
-		nuova_aula = Aule(nome, self, disegno, prese)
+		nuova_aula = Aula(nome, self, disegno, prese)
 		self.aule.append(nuova_aula)
 		self.aule.sort(reverse=True)
 
 	def __init__(self, nome, posizione, aule=[]):
-		self.tutti[nome] = self
+		all_buildings[nome] = self
 		self.nome = nome  # Stringa
 		self.posizione = posizione  # Tupla lat-lon
 		self.aule = []  # Lista di oggetti Aula. Automaticamente riordinata quando ne viene aggiunta una
@@ -90,7 +89,7 @@ class Edificio:
 		return self.nome
 
 
-def get_sorted_buildings(location, buildings=Edificio.tutti):
+def get_sorted_buildings(location, buildings=all_buildings):
 	def distance(location, edificio):
 		pos_edificio = edificio.posizione
 		return geodist.distance(location, pos_edificio)
@@ -109,7 +108,7 @@ with open('edifici.csv', 'r') as csvfile:
 		name, lat, lon = line
 		lat = float(lat.replace(',', '.'))
 		lon = float(lon.replace(',', '.'))
-		Edificio.tutti[name] = Edificio(name, (lat, lon))
+		all_buildings[name] = Edificio(name, (lat, lon))
 del csvfile, line, name, lat, lon
 
 #%% Load rooms' data
@@ -118,26 +117,23 @@ with open('aule.csv', 'r') as csvfile:
 		building, name, draw, plug = line
 		draw = bool(draw)
 		plug = bool(plug)
-		Edificio.tutti[building].aggiungi_aula(name, draw, plug)
+		all_buildings[building].aggiungi_aula(name, draw, plug)
 del csvfile, line, building, name, plug, draw
 
 #%%
 """
-for aula in Aule.tutte.keys():
-	Aule.tutte[aula] = occupation[aula]
+for aula in aule.keys():
+	all_rooms[aula] = occupation[aula]
 # Considero 'occupation' come un dizionario con chiavi i nomi delle aule e valori le liste di eventi
 """
 
 piazza = (45.4780440, 9.2256319)
 lambrate = (45.4850472, 9.2372908)
-
+#%% Check buildings sorting
 print('Dalla piazza: ')
 print([str(i) for i in get_sorted_buildings(piazza)])
 print('Dalla stazione: ')
 print([str(i) for i in get_sorted_buildings(lambrate)])
-
-
-
-
+#%% Check combined buildings+rooms sorting
 print_best_rooms(piazza)
 print_best_rooms(lambrate)
