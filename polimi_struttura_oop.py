@@ -88,19 +88,25 @@ class Edificio:
 	def __str__(self):
 		return self.nome
 
-def get_sorted_buildings(location, buildings=all_buildings):
+def sorted_buildings(location, buildings=all_buildings):
+	"""Returns list of Edificio objects, closest first.
+	Parameters: location, list/dict of Edificio objects (optional)"""
 	def distance(location, edificio):
 		pos_edificio = edificio.posizione
 		return geodist.distance(location, pos_edificio)
-	if isinstance(buildings, dict): buildings = buildings.values() # Allow passing a list instead of a dict
+	if isinstance(buildings, dict): buildings = buildings.values() # Allow passing a list of buildings as parameter
 	list_with_distances = [(building, distance(location, building)) for building in buildings]
 	list_with_distances.sort(key=lambda x: x[1])
-	return [pair[0] for pair in list_with_distances]
+	return [pair[0] for pair in list_with_distances]  #Returns a sorted list of Edificio objects
 
-def print_best_rooms(location):
-	edifici_migliori = get_sorted_buildings(location)[:2]
+def best_rooms(location):  #TODO: change criteria, this is useless
+	"""Returns buildingname:[room, ] dict based on location.
+	"""
+	edifici_migliori = sorted_buildings(location)[:2]
+	best_rooms={}
 	for edificio in edifici_migliori:
-		print(edificio, [str(aula) for aula in edificio.aule[:6]], sep=': ')
+		best_rooms[edificio] = edificio.aule[:6]
+	return best_rooms
 
 #%% Loads buildings' data
 with open('edifici.csv', 'r') as csvfile:
@@ -126,14 +132,14 @@ for aula in aule.keys():
 	all_rooms[aula] = occupation[aula]
 # Considero 'occupation' come un dizionario con chiavi i nomi delle aule e valori le liste di eventi
 """
-
-piazza = (45.4780440, 9.2256319)
-lambrate = (45.4850472, 9.2372908)
-#%% Check buildings sorting
-print('Dalla piazza: ')
-print([str(i) for i in get_sorted_buildings(piazza)])
-print('Dalla stazione: ')
-print([str(i) for i in get_sorted_buildings(lambrate)])
-#%% Check combined buildings+rooms sorting
-print_best_rooms(piazza)
-print_best_rooms(lambrate)
+if __name__ == "__main__":  # Avoid execution if imported
+	__piazza = (45.4780440, 9.2256319)
+	__lambrate = (45.4850472, 9.2372908)
+	#%% Check buildings sorting
+	print('Dalla __piazza: ')
+	print([str(i) for i in sorted_buildings(__piazza)])
+	print('Dalla stazione: ')
+	print([str(i) for i in sorted_buildings(__lambrate)])
+	#%% Check combined buildings+rooms sorting
+	print([[str(j) for j in i.aule] for i in best_rooms(__piazza)])
+	print([[str(j) for j in i.aule] for i in best_rooms(__lambrate)])
