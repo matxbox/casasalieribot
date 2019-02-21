@@ -88,12 +88,12 @@ class Edificio:
 	def __str__(self):
 		return self.nome
 
-
 def get_sorted_buildings(location, buildings=all_buildings):
 	def distance(location, edificio):
 		pos_edificio = edificio.posizione
 		return geodist.distance(location, pos_edificio)
-	list_with_distances = [(building, distance(location, building)) for building in buildings.values()]
+	if isinstance(buildings, dict): buildings = buildings.values() # Allow passing a list instead of a dict
+	list_with_distances = [(building, distance(location, building)) for building in buildings]
 	list_with_distances.sort(key=lambda x: x[1])
 	return [pair[0] for pair in list_with_distances]
 
