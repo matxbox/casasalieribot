@@ -12,3 +12,5 @@ messaggio.txt
 .venv
 .vscode
 *.code-workspace
+
+__pycache__/
