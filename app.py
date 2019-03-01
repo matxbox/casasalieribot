@@ -5,8 +5,8 @@ from telegram.ext import (CommandHandler, MessageHandler, ConversationHandler, F
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from requests import get
 from os import environ
+
 #%% vars
-token = '633258565:AAHXlsA5cQklnLcZ8tg125LZjhGCLc0_hQc'
 csic_keyboard = [['Milano Bovisa', 'La Masa', 'Candiani'],
 		   ['Milano Leonardo'],
 		   ['Como', 'Lecco'],
@@ -24,8 +24,6 @@ csic_dict = {'Milano Bovisa': 'MIB',
 day_dict = {'Oggi': 0,
 		   'Domani': 3600*24,
 		   'Dopodomani': 3600*48}
-csic = []
-day = []
 
 
 def start(bot, update):
@@ -40,13 +38,12 @@ def generalupdate(bot, update):
 
 
 def preparafile(luogo, periodo):
-	daytemp = periodo[0]
-	urlkeys = {'csic': luogo[0],
+	urlkeys = {'csic': luogo,
 			   'categoria': 'tutte',
 			   'tipologia': 'tutte',
-			   'giorno_day': str(daytemp.day),
-			   'giorno_month': str(daytemp.month),
-			   'giorno_year': str(daytemp.year),
+			   'giorno_day': str(periodo.day),
+			   'giorno_month': str(periodo.month),
+			   'giorno_year': str(periodo.year),
 			   'jaf_giorno_date_format': 'dd%2FMM%2Fyyyy',
 			   'evn_visualizza': 'Visualizza+occupazioni'}
 	url = 'https://www7.ceda.polimi.it/spazi/spazi/controller/OccupazioniGiornoEsatto.do'
@@ -77,14 +74,15 @@ def occupation(bot, update):
 
 def sede(bot, update):
 	global csic
+	global day
 	csic = csic_dict.get(update.message.text)
 	if csic == None:
 		logging.warning('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(csic_keyboard, True, True))
-		csic.clear()
-		day.clear()
+		del csic
+		del day
 		return 0
 	else:
 		logging.info('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
@@ -96,44 +94,52 @@ def sede(bot, update):
 
 def giorno(bot, update):
 	try:
-		day=date.fromtimestamp(time.time()+day_dict.get(update.message.text)))
+		day = date.fromtimestamp(time.time() + day_dict.get(update.message.text))
 		logging.info('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		nomefile = preparafile(csic, day)
 		with open(nomefile, 'rb') as sendpage:
 			bot.send_document(chat_id=update.message.chat_id, document=sendpage, reply_markup=ReplyKeyboardRemove())
-		csic.clear()
-		day.clear()
+		del csic
+		del day
 		return ConversationHandler.END
 	except TypeError:
 		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(day_keyboard, True, True))
-		day.clear()
+		del day
 		return 1
 
 
 def cancel(bot, update):
+	global csic
+	global day
 	logging.info('user @%s said %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Richiesta annullata',
 					 reply_markup=ReplyKeyboardRemove())
-	csic.clear()
-	day.clear()
+	del csic
+	del day
 	return ConversationHandler.END
 
 
 def error(bot, update, errore):
+	global csic
+	global day
 	print(errore)
 	logging.critical('TELEGRAMERROR @%s: %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Qualcosa è andato storto, ricomincia da capo',
 					 reply_markup=ReplyKeyboardRemove())
-	csic.clear()
-	day.clear()
+	del csic
+	del day
 
 
 def avvio():
+	try: token = argv[1]
+	except IndexError:
+		with open('token_sviluppo.txt', 'r') as file:
+			token = file.read()
 	updater = Updater(token=token)
 	dispatcher = updater.dispatcher
 	convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
