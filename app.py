@@ -7,12 +7,12 @@ from requests import get
 from os import environ
 #%% vars
 token = '633258565:AAHXlsA5cQklnLcZ8tg125LZjhGCLc0_hQc'
-csickey = [['Milano Bovisa', 'La Masa', 'Candiani'],
+csic_keyboard = [['Milano Bovisa', 'La Masa', 'Candiani'],
 		   ['Milano Leonardo'],
 		   ['Como', 'Lecco'],
 		   ['Cremona', 'Mantova', 'Piacenza']]
-daykey = [['Oggi'], ['Domani'], ['Dopodomani']]
-csicdict = {'Milano Bovisa': 'MIB',
+day_keyboard = [['Oggi'], ['Domani'], ['Dopodomani']]
+csic_dict = {'Milano Bovisa': 'MIB',
 			'La Masa': 'MIB01',
 			'Candiani': 'MIB02',
 			'Milano Leonardo': 'MIA',
@@ -21,7 +21,7 @@ csicdict = {'Milano Bovisa': 'MIB',
 			'Lecco': 'LCF',
 			'Mantova': 'MNI',
 			'Piacenza': 'PCL'}
-daydict = {'Oggi': 0,
+day_dict = {'Oggi': 0,
 		   'Domani': 3600*24,
 		   'Dopodomani': 3600*48}
 csic = []
@@ -71,17 +71,18 @@ def occupation(bot, update):
 	logging.info('CONVSTART @%s: %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Scegli il tuo campus o usa il comando /cancel per annullare',
-					 reply_markup=ReplyKeyboardMarkup(csickey, True, True))
+					 reply_markup=ReplyKeyboardMarkup(csic_keyboard, True, True))
 	return 0
 
 
 def sede(bot, update):
-	csic.append(csicdict.get(update.message.text))
-	if csic == [None]:
+	global csic
+	csic = csic_dict.get(update.message.text)
+	if csic == None:
 		logging.warning('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
-						 reply_markup=ReplyKeyboardMarkup(csickey, True, True))
+						 reply_markup=ReplyKeyboardMarkup(csic_keyboard, True, True))
 		csic.clear()
 		day.clear()
 		return 0
@@ -89,13 +90,13 @@ def sede(bot, update):
 		logging.info('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Scegli il giorno',
-						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
+						 reply_markup=ReplyKeyboardMarkup(day_keyboard, True, True))
 		return 1
 
 
 def giorno(bot, update):
 	try:
-		day.append(date.fromtimestamp(time.time()+daydict.get(update.message.text)))
+		day=date.fromtimestamp(time.time()+day_dict.get(update.message.text)))
 		logging.info('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		nomefile = preparafile(csic, day)
 		with open(nomefile, 'rb') as sendpage:
@@ -107,7 +108,7 @@ def giorno(bot, update):
 		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
-						 reply_markup=ReplyKeyboardMarkup(daykey, True, True))
+						 reply_markup=ReplyKeyboardMarkup(day_keyboard, True, True))
 		day.clear()
 		return 1
 
