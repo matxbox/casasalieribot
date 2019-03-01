@@ -3,3 +3,14 @@ occupazioni.html
 *.html
 venv
 messaggio.txt
+/.vs/casasalieribot/v15
+/.vs
+/casasalieribot.pyproj
+/casasalieribot.sln
+/casasalieribot.pyproj.user
+
+.venv
+.vscode
+*.code-workspace
+
+__pycache__/

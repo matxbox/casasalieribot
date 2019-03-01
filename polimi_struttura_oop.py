@@ -1,11 +1,12 @@
 from geopy import distance as geodist
+import csv
 
-
-class Aule:
-	tutte = {}
+all_rooms = {}
+class Aula:
+	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
 
 	def __init__(self, nome, edificio, disegno, prese):
-		self.tutte[nome] = self
+		all_rooms[nome] = self
 		self.nome = nome
 		self.edificio = edificio
 		self.disegno = disegno
@@ -69,17 +70,17 @@ class Aule:
 		self.edificio.aule.sort(reverse=True)
 		print('Edificio ' + str(self.edificio) + ' riordinato')
 
-
+all_buildings = {}
 class Edificio:
-	tutti = []
-
+	'Crea un nuovo edificio dati un nome e una tupla (lat, long)'
+	
 	def aggiungi_aula(self, nome, disegno, prese):
-		nuova_aula = Aule(nome, self, disegno, prese)
+		nuova_aula = Aula(nome, self, disegno, prese)
 		self.aule.append(nuova_aula)
 		self.aule.sort(reverse=True)
 
 	def __init__(self, nome, posizione, aule=[]):
-		self.tutti.append(self)
+		all_buildings[nome] = self
 		self.nome = nome  # Stringa
 		self.posizione = posizione  # Tupla lat-lon
 		self.aule = []  # Lista di oggetti Aula. Automaticamente riordinata quando ne viene aggiunta una
@@ -87,79 +88,58 @@ class Edificio:
 	def __str__(self):
 		return self.nome
 
-
-def get_sorted_buildings(posizione, edifici=Edificio.tutti):
-	def distance(posizione, edificio):
+def sorted_buildings(location, buildings=all_buildings):
+	"""Returns list of Edificio objects, closest first.
+	Parameters: location, list/dict of Edificio objects (optional)"""
+	def distance(location, edificio):
 		pos_edificio = edificio.posizione
-		return geodist.distance(posizione, pos_edificio)
-
-	list_with_distances = [(edificio, distance(posizione, edificio)) for edificio in edifici]
+		return geodist.distance(location, pos_edificio)
+	if isinstance(buildings, dict): buildings = buildings.values() # Allow passing a list of buildings as parameter
+	list_with_distances = [(building, distance(location, building)) for building in buildings]
 	list_with_distances.sort(key=lambda x: x[1])
-	return [coppia[0] for coppia in list_with_distances]
+	return [pair[0] for pair in list_with_distances]  #Returns a sorted list of Edificio objects
 
+def best_rooms(location):  #TODO: change criteria, this is useless
+	"""Returns buildingname:[room, ] dict based on location.
+	"""
+	edifici_migliori = sorted_buildings(location)[:2]
+	best_rooms={}
+	for edificio in edifici_migliori:
+		best_rooms[edificio] = edificio.aule[:6]
+	return best_rooms
 
-Nave = Edificio('Nave', (45.4799597, 9.2299996))
-Nord = Edificio('Nord', (45.4787942, 9.22750011))
-Sud = Edificio('Sud', (45.4773985, 9.2275527))
-L26 = Edificio('L26', (45.4759806, 9.2349167))
+#%% Loads buildings' data
+with open('edifici.csv', 'r') as csvfile:
+	for line in csv.reader(csvfile, delimiter=';'):
+		name, lat, lon = line
+		lat = float(lat.replace(',', '.'))
+		lon = float(lon.replace(',', '.'))
+		all_buildings[name] = Edificio(name, (lat, lon))
+del csvfile, line, name, lat, lon
 
-Nave.aggiungi_aula('B.2.1', False, False)
-Nave.aggiungi_aula('B.2.2', True, False)
-Nave.aggiungi_aula('B.2.3', True, False)
-Nave.aggiungi_aula('B.2.4', False, False)
-Nave.aggiungi_aula('B.4.1', True, False)
-Nave.aggiungi_aula('B.4.2', False, False)
-Nave.aggiungi_aula('B.4.3', True, True)
-Nave.aggiungi_aula('B.4.4', True, False)
+#%% Load rooms' data
+with open('aule.csv', 'r') as csvfile:
+	for line in csv.reader(csvfile, delimiter=';'):
+		building, name, draw, plug = line
+		draw = bool(draw)
+		plug = bool(plug)
+		all_buildings[building].aggiungi_aula(name, draw, plug)
+del csvfile, line, building, name, plug, draw
 
-Nord.aggiungi_aula('N.2.1', True, False)
-Nord.aggiungi_aula('N.2.2', True, False)
-Nord.aggiungi_aula('N.2.3', True, False)
-Nord.aggiungi_aula('N.2.4', True, True)
-Nord.aggiungi_aula('N.1.6', False, False)
-
-Sud.aggiungi_aula('S.1.1', True, False)
-Sud.aggiungi_aula('S.1.2', False, True)
-Sud.aggiungi_aula('S.1.3', False, True)
-Sud.aggiungi_aula('S.1.4', False, True)
-Sud.aggiungi_aula('S.1.5', False, True)
-Sud.aggiungi_aula('S.1.6', False, True)
-Sud.aggiungi_aula('S.1.7', True, True)
-Sud.aggiungi_aula('S.1.8', True, True)
-Sud.aggiungi_aula('S.1.9', True, True)
-
-L26.aggiungi_aula('L26.01', False, False)
-L26.aggiungi_aula('L26.02', False, False)
-L26.aggiungi_aula('L26.03', False, False)
-L26.aggiungi_aula('L26.04', False, True)
-L26.aggiungi_aula('L26.11', False, False)
-L26.aggiungi_aula('L26.12', False, False)
-L26.aggiungi_aula('L26.13', True, True)
-L26.aggiungi_aula('L26.14', True, True)
-L26.aggiungi_aula('L26.15', False, False)
-L26.aggiungi_aula('L26.16', False, False)
-
+#%%
 """
-for aula in Aule.tutte.keys():
-	Aule.tutte[aula] = occupation[aula]
+for aula in aule.keys():
+	all_rooms[aula] = occupation[aula]
 # Considero 'occupation' come un dizionario con chiavi i nomi delle aule e valori le liste di eventi
 """
-
-# Aule.tutte['N.2.4'].occupation = ['ciao', 'mamma']         Esempio di assegnazione dell'occupazione
-piazza = (45.4780440, 9.2256319)
-lambrate = (45.4850472, 9.2372908)
-
-print('Dalla piazza: ')
-print([str(i) for i in get_sorted_buildings(piazza)])
-print('Dalla stazione: ')
-print([str(i) for i in get_sorted_buildings(lambrate)])
-
-
-def print_best_rooms(location):
-	edifici_migliori = get_sorted_buildings(location)[:2]
-	for edificio in edifici_migliori:
-		print(edificio, [str(aula) for aula in edificio.aule[:6]], sep=': ')
-
-
-print_best_rooms(piazza)
-print_best_rooms(lambrate)
+if __name__ == "__main__":  # Avoid execution if imported
+	__piazza = (45.4780440, 9.2256319)
+	__lambrate = (45.4850472, 9.2372908)
+	#%% Check buildings sorting
+	print('Dalla __piazza: ')
+	print([str(i) for i in sorted_buildings(__piazza)])
+	print('Dalla stazione: ')
+	print([str(i) for i in sorted_buildings(__lambrate)])
+	#%% Check combined buildings+rooms sorting
+	print([[str(j) for j in i.aule] for i in best_rooms(__piazza)])
+	print([[str(j) for j in i.aule] for i in best_rooms(__lambrate)])

@@ -1,13 +1,9 @@
 import datetime
-
 import bs4
 
-with open('occupazioni.html', 'r') as htmlfile:
-	parsed = bs4.BeautifulSoup(htmlfile, 'html.parser', parse_only=bs4.SoupStrainer(class_='scrollContent', name='tbody'))
-rows = parsed.find_all(class_='normalRow')[1:]
-
-
+# Here is html --> data per row
 def parse_row_get_occupation(row):
+	"""Actually does the parsing, converting a refined row to a list of tuples"""
 	events_duration = []
 	def add_15m_free(): # List with (time, ending event name) tuples
 		nonlocal events_duration
@@ -21,24 +17,23 @@ def parse_row_get_occupation(row):
 			events_duration.append((15, 'Vuota'))
 
 	for tag in row.children:
-		if tag.attrs['class'] == ['slot']:
+		if tag.attrs['class'] == ['slot']:  # That's an event!
 			length = int(tag.attrs['colspan']) * 15
 			activity = tag.string
 			if activity[-8:] == '(ESAME) ':
 				activity = 'Esame'
 			events_duration.append((length, activity))
-		elif tag.attrs['class'] in (['empty'], ['empty_prima']):
+		elif tag.attrs['class'] in (['empty'], ['empty_prima']):  # That's a free spot!
 			add_15m_free()
-		elif tag.attrs['class'] in (['data'], ['dove']):
+		elif tag.attrs['class'] in (['data'], ['dove']):  # First cells, useless
 			continue
 		else:
-			raise Error('Tag imprevisto!')
 			print(str(tag))
-	# 		print('Slot di {} minuti per {}'.format(minutes, activity))
+			raise Error('Tag imprevisto!')
 	return events_duration
 
-
-def print_string_of_occupation(name, roomdata):
+# Here is data --> readable text per room
+def return_list_of_readable_lines(name, roomdata):
 	output_list = []
 	output_list.append(name + '\n')
 	currenttime = datetime.datetime(1, 1, 1, hour=8, minute=00)
@@ -49,7 +44,11 @@ def print_string_of_occupation(name, roomdata):
 	return output_list
 
 
-# Itera su tutte le righe per generare il dizionario 'rooms'
+with open('occupazioni.html', 'r') as htmlfile:
+	parsed = bs4.BeautifulSoup(htmlfile, 'html.parser', parse_only=bs4.SoupStrainer(class_='scrollContent', name='tbody'))
+rows = parsed.find_all(class_='normalRow')[1:]
+
+# Here is done parsing for every row, handling multiple rows per room
 rooms = {}
 while len(rows) != 0:
 	row = rows.pop(0)
@@ -66,12 +65,11 @@ while len(rows) != 0:
 				break
 	else:
 		rooms[room] = occupation  # Se invece va tutto bene, salva semplicemente
-# Qui tutti i dati sono stati interpretati e salvati in 'rooms', un dizionario {nomeaula: listaoccupazioni}
 
-# Genera il testo a partire dal dizionario 'rooms' e al posto di inviarlo per messaggio lo salva in un file
+# Here text is generated for every row and saved
 text_list = []
 for room, roomdata in rooms.items():
-	text_list.extend(print_string_of_occupation(room, roomdata))
+	text_list.extend(return_list_of_readable_lines(room, roomdata))
 with open('messaggio.txt', 'w+') as outputfile:
 	outputfile.writelines(text_list)
 exit()
