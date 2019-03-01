@@ -36,6 +36,9 @@ class Aula:
 	def __cmp(self, other):
 		disegno = self.__cmp_disegno(other)
 		prese = self.__cmp_prese(other)
+		# Occupazione
+		# Distanza
+		# Piano
 		total = 1 * prese + 1.5 * disegno
 		return total
 
