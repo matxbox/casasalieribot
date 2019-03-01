@@ -133,30 +133,32 @@ def error(bot, update, errore):
 
 
 def avvio():
+	updater = Updater(token=token)
+	dispatcher = updater.dispatcher
+	convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
+									states={0: [MessageHandler(Filters.text & ~ Filters.command, sede)],
+											1: [MessageHandler(Filters.text & ~ Filters.command, giorno)]},
+									fallbacks=[CommandHandler('cancel', cancel)],
+									allow_reentry=True)
+	start_handler = CommandHandler('start', start)
+	general = MessageHandler(Filters.all, generalupdate)
+	dispatcher.add_handler(start_handler)
+	dispatcher.add_handler(convers)
+	dispatcher.add_handler(general)
+	dispatcher.add_error_handler(error)
+	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 	try:
 		environ['TZ'] = 'Europe/Rome'
 		time.tzset()
 		platf = 'UNIX'
+		PORT = int(environ.get('PORT', '8443'))
+		updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=token)
+		updater.bot.set_webhook("https://casa-salieri-bot.herokuapp.com/"+token)
 	except AttributeError:
 		platf = 'WIN'
-	finally:
-		logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-		logging.info('RUNNING on ' + platf)
-		updater = Updater(token=token)
-		dispatcher = updater.dispatcher
-		convers = ConversationHandler(entry_points=[CommandHandler('occupation', occupation)],
-									  states={0: [MessageHandler(Filters.text & ~ Filters.command, sede)],
-											  1: [MessageHandler(Filters.text & ~ Filters.command, giorno)]},
-									  fallbacks=[CommandHandler('cancel', cancel)],
-									  allow_reentry=True)
-		start_handler = CommandHandler('start', start)
-		general = MessageHandler(Filters.all, generalupdate)
-		dispatcher.add_handler(start_handler)
-		dispatcher.add_handler(convers)
-		dispatcher.add_handler(general)
-		dispatcher.add_error_handler(error)
 		updater.start_polling()
-		updater.idle()
+	logging.info('RUNNING on ' + platf)
+	updater.idle()
 
 
 if __name__ == '__main__':
