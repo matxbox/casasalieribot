@@ -5,6 +5,7 @@ from telegram.ext import (CommandHandler, MessageHandler, ConversationHandler, F
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from requests import get
 from os import environ
+from sys import argv
 
 #%% vars
 csic_keyboard = [['Milano Bovisa', 'La Masa', 'Candiani'],
@@ -74,15 +75,14 @@ def occupation(bot, update):
 
 def sede(bot, update):
 	global csic
-	global day
 	csic = csic_dict.get(update.message.text)
 	if csic == None:
 		logging.warning('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(csic_keyboard, True, True))
-		del csic
-		del day
+		try: del csic
+		except NameError: pass
 		return 0
 	else:
 		logging.info('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
@@ -93,46 +93,44 @@ def sede(bot, update):
 
 
 def giorno(bot, update):
+	global csic
 	try:
 		day = date.fromtimestamp(time.time() + day_dict.get(update.message.text))
 		logging.info('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		nomefile = preparafile(csic, day)
 		with open(nomefile, 'rb') as sendpage:
 			bot.send_document(chat_id=update.message.chat_id, document=sendpage, reply_markup=ReplyKeyboardRemove())
-		del csic
-		del day
+		try: del csic
+		except NameError: pass
 		return ConversationHandler.END
 	except TypeError:
 		logging.warning('CONVGIORNO @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
 						 reply_markup=ReplyKeyboardMarkup(day_keyboard, True, True))
-		del day
 		return 1
 
 
 def cancel(bot, update):
 	global csic
-	global day
 	logging.info('user @%s said %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Richiesta annullata',
 					 reply_markup=ReplyKeyboardRemove())
-	del csic
-	del day
+	try: del csic
+	except NameError: pass
 	return ConversationHandler.END
 
 
 def error(bot, update, errore):
 	global csic
-	global day
 	print(errore)
 	logging.critical('TELEGRAMERROR @%s: %s', update.message.from_user.username, update.message.text)
 	bot.send_message(chat_id=update.message.chat_id,
 					 text='Qualcosa è andato storto, ricomincia da capo',
 					 reply_markup=ReplyKeyboardRemove())
-	del csic
-	del day
+	try: del csic
+	except NameError: pass
 
 
 def avvio():
@@ -155,15 +153,16 @@ def avvio():
 	dispatcher.add_error_handler(error)
 	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 	try:
-		environ['TZ'] = 'Europe/Rome'
 		time.tzset()
+	except AttributeError:
+		platf = 'WIN'
+		updater.start_polling()
+	else:
+		environ['TZ'] = 'Europe/Rome'
 		platf = 'UNIX'
 		PORT = int(environ.get('PORT', '8443'))
 		updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=token)
 		updater.bot.set_webhook("https://casa-salieri-bot.herokuapp.com/"+token)
-	except AttributeError:
-		platf = 'WIN'
-		updater.start_polling()
 	logging.info('RUNNING on ' + platf)
 	updater.idle()
 
