@@ -76,7 +76,7 @@ def occupation(bot, update):
 def sede(bot, update):
 	global csic
 	csic = csic_dict.get(update.message.text)
-	if csic == None:
+	if csic is None:
 		logging.warning('CONVSEDE @%s: %s', update.message.from_user.username, update.message.text)
 		bot.send_message(chat_id=update.message.chat_id,
 						 text='Non ho capito, riprova',
