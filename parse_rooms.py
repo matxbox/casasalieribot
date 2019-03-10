@@ -32,7 +32,7 @@ def room_details_parser(url):
     room_web = gethttp(url)
     souproom = BeautifulSoup(room_web.content, 'html.parser')
     allestimenti_table = souproom.find(name = 'table', id = 'aula_proprietaPubblicabili_auleColl')
-    allestimenti_list = [x for x in allestimenti_table.tbody.stripped_strings]
+    allestimenti_list =tuple(allestimenti_table.tbody.stripped_strings)
     try:
         allestimenti_list.index('Postazioni dotate di presa elettrica')
     except ValueError:
@@ -45,29 +45,34 @@ def room_details_parser(url):
         ethernet = False
     else:
         ethernet = True
-    details_div = souproom.find(name = 'div', id = re.compile('tab[0-9]{5}-0'))
-    details_list = [x for x in details_div.stripped_strings]
+    details_div = souproom.find(name = 'div', id = re.compile('tab[0-9]{3,5}-0'))
+    details_list = tuple(details_div.stripped_strings)
     edificio_full = details_list[details_list.index('Edificio')+1]
     edificio = edificio_full.split(' - ')[0][9:]
+    if edificio == 'Indirizzo': edificio = '11'
     room_details = {
-                    'nome': details_list[details_list.index('Sigla')+1],
-                    'categoria': details_list[details_list.index('Categoria')+1],
-                    'tipologia': details_list[details_list.index('Tipologia')+1],
+                    'campus': details_list[details_list.index('Codice vano')+1][:5],
                     'edificio': edificio,
+                    'nome': details_list[details_list.index('Sigla')+1],
                     'prese' : prese,
-                    'ethernet' : ethernet
+                    'tipologia': details_list[details_list.index('Tipologia')+1],
+                    'ethernet' : ethernet,
+                    'categoria': details_list[details_list.index('Categoria')+1],
                     }
     return room_details
 
-sedi = ['MIB', 'MIA', 'COE', 'CRG', 'LCF', 'MNI', 'PCL']
-fields = ['edificio', 'nome', 'prese', 'tipologia', 'ethernet', 'categoria']
-csv.excel.delimiter = ';'
-with open('rooms.csv', 'w', newline = '') as csvrooms:
-    csvwriter = csv.DictWriter(csvrooms, fieldnames = fields,)
-    csvwriter.writeheader()
-    for sede_code in sedi:
-        for room_url in room_url_parser(sede_code):
-            csvwriter.writerow(room_details_parser(room_url))
-             
-elapsed = str((start - time())//60) + ':' + str((start-time()) % 60)
-print(elapsed)
+def avvio():
+    sedi = ['MIB', 'MIA']
+    fields = ['campus', 'edificio', 'nome', 'prese', 'tipologia', 'ethernet', 'categoria']
+    csv.excel.delimiter = ';'
+    with open('rooms.csv', 'w', newline = '') as csvrooms:
+        csvwriter = csv.DictWriter(csvrooms, fieldnames = fields,)
+        csvwriter.writeheader()
+        for sede_code in sedi:
+            for room_url in room_url_parser(sede_code):
+                csvwriter.writerow(room_details_parser(room_url))
+    elapsed = str((time() - start)//60) + ':' + str((time() - start) % 60)
+    print(elapsed)
+
+if __name__ == '__main__':
+    avvio()
