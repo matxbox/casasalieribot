@@ -1,17 +1,52 @@
 from geopy import distance as geodist
 import csv
 
-all_rooms = {}
+
+all_rooms={}
+
 class Aula:
 	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
 
-	def __init__(self, nome, edificio, disegno, prese):
+	def __init__(
+				self, 
+				nome: str, 
+				edificio, 
+				disegno: bool, 
+				prese: bool, 
+				ethernet: bool, 
+				informatizzata: bool, 
+				campus: str):
 		all_rooms[nome] = self
+		self.userlocation = None
 		self.nome = nome
 		self.edificio = edificio
 		self.disegno = disegno
 		self.prese = prese
+		self.ethernet = ethernet
+		self.informatizzata = informatizzata
+		self.campus = campus
 		self._occupation = []
+		self.weights = {
+						'occupation': 10,
+						'distance': 10,
+						'prese': 10,
+						'disegno': 10,
+						'ethernet': 10,
+						'informatizzata': 10,
+						}
+
+
+	def __cmp_distance(self, other):
+		if self.userlocation is None:
+			return 0
+		else:
+			selfdist = geodist.distance(self.edificio.posizione, self.userlocation).km
+			otherdist = geodist.distance(other.edificio.posizione, self.userlocation).km
+			if selfdist < otherdist:
+				return 1
+			elif selfdist > otherdist:
+				return -1
+			else: return 0
 
 	def __cmp_prese(self, other):
 		if self.prese:
@@ -33,20 +68,42 @@ class Aula:
 			if other.disegno: return -1
 		return 0
 
+	def __cmp_ethernet(self, other):
+		if self.ethernet:
+			if other.ethernet:
+				return 0
+			else:
+				return 1
+		else:
+			if other.ethernet: return -1
+		return 0
+
+	def __cmp_informatizzata(self, other):
+		# criterio inverso, se NON informatizzata è meglio
+		if self.informatizzata:
+			if other.informatizzata:
+				return 0
+			else:
+				return -1
+		else:
+			if other.informatizzata: return 1
+		return 0
+
 	def __cmp(self, other):
-		disegno = self.__cmp_disegno(other)
-		prese = self.__cmp_prese(other)
+		disegno =  self.weights['disegno'] * self.__cmp_disegno(other)
+		prese = self.weights['prese'] * self.__cmp_prese(other)
+		distanza = self.weights['distance'] * self.__cmp_distance(other)
+		ethernet = self.weights['ethernet'] * self.__cmp_ethernet(other)
+		informatizzata = self.weights['informatizzata'] * self.__cmp_informatizzata(other)
 		# Occupazione
-		# Distanza
-		# Piano
-		total = 1 * prese + 1.5 * disegno
+		total = prese + disegno + distanza + ethernet + informatizzata
 		return total
 
 	def __str__(self):
 		return self.nome
 
 	def __eq__(self, other):
-		return self.__cmp_prese(other) == 0
+		return self.__cmp(other) == 0
 
 	def __lt__(self, other):
 		return self.__cmp(other) < 0
@@ -76,17 +133,18 @@ class Aula:
 all_buildings = {}
 class Edificio:
 	'Crea un nuovo edificio dati un nome e una tupla (lat, long)'
-	
-	def aggiungi_aula(self, nome, disegno, prese):
-		nuova_aula = Aula(nome, self, disegno, prese)
+
+	def __init__(self, nome: str, latitudine: float, longitudine: float, campus: str, aule=[]):
+		all_buildings[nome] = self
+		self.campus = campus
+		self.nome = nome  # Stringa
+		self.posizione = (latitudine, longitudine)  # Tupla lat-lon
+		self.aule = []  # Lista di oggetti Aula. Automaticamente riordinata quando ne viene aggiunta una
+
+	def aggiungi_aula(self, nome, disegno, prese, ethernet, informatizzata, campus):
+		nuova_aula = Aula(nome, self, disegno, prese, ethernet, informatizzata, campus)
 		self.aule.append(nuova_aula)
 		self.aule.sort(reverse=True)
-
-	def __init__(self, nome, posizione, aule=[]):
-		all_buildings[nome] = self
-		self.nome = nome  # Stringa
-		self.posizione = posizione  # Tupla lat-lon
-		self.aule = []  # Lista di oggetti Aula. Automaticamente riordinata quando ne viene aggiunta una
 
 	def __str__(self):
 		return self.nome
@@ -112,29 +170,45 @@ def best_rooms(location):  #TODO: change criteria, this is useless
 	return best_rooms
 
 #%% Loads buildings' data
-with open('edifici.csv', 'r') as csvfile:
-	for line in csv.reader(csvfile, delimiter=';'):
-		name, lat, lon = line
+with open('buildings.csv', 'r') as csvfile:
+	for line in csv.reader(csvfile):
+		campus, name, lat, lon = line
 		lat = float(lat.replace(',', '.'))
 		lon = float(lon.replace(',', '.'))
-		all_buildings[name] = Edificio(name, (lat, lon))
-del csvfile, line, name, lat, lon
+		all_buildings[name] = Edificio(name, lat, lon, campus)
+del csvfile, line, name, lat, lon, campus
 
-#%% Load rooms' data
+#%% Loads rooms' data
+with open('rooms.csv', 'r') as csvfile:
+	for row in csv.DictReader(csvfile):
+		campus, edificio, nome, prese, tipologia, ethernet, categoria = row.values()
+		prese = bool(prese)
+		ethernet = bool(ethernet)
+		if tipologia == 'DISEGNO':
+			disegno = True
+			informatizzata = False
+		elif tipologia == 'INFORMATIZZATA':
+			disegno = False
+			informatizzata = True
+		else:
+			disegno = False
+			informatizzata = False
+		all_buildings[edificio].aggiungi_aula(nome, disegno, prese, ethernet, informatizzata, campus)
+
+''' OLD AULE CSV
 with open('aule.csv', 'r') as csvfile:
-	for line in csv.reader(csvfile, delimiter=';'):
+	for line in csv.reader(csvfile):
 		building, name, draw, plug = line
 		draw = bool(draw)
 		plug = bool(plug)
 		all_buildings[building].aggiungi_aula(name, draw, plug)
 del csvfile, line, building, name, plug, draw
 
-#%%
-"""
 for aula in aule.keys():
 	all_rooms[aula] = occupation[aula]
 # Considero 'occupation' come un dizionario con chiavi i nomi delle aule e valori le liste di eventi
-"""
+'''
+
 if __name__ == "__main__":  # Avoid execution if imported
 	__piazza = (45.4780440, 9.2256319)
 	__lambrate = (45.4850472, 9.2372908)
