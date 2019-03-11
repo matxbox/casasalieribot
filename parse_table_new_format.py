@@ -31,9 +31,10 @@ class Occupation:
 		return new_eventlist, new_occupation
 				
 	def evaluate(self, starttime=datetime.time(hour=8)):
-		temp_eventlist, temp_occupation = self._delete_events_before(starttime)
-
-		
+		current_slot_number = (60*(starttime.hour-8) + starttime.minute)//15
+		current_event = self.occupation[current_slot_number]
+		if current_event.name == 'Vuota':
+			return current_event.endtime.time() - starttime
 
 # Here is html --> data per row
 def parse_row_get_occupation(row):

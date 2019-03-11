@@ -1,3 +1,4 @@
+import datetime
 from geopy import distance as geodist
 import csv
 
@@ -6,7 +7,14 @@ all_rooms={}
 
 class Aula:
 	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
-
+	weights = {
+				'occupation': 10,
+				'distance': 10,
+				'prese': 10,
+				'disegno': 10,
+				'ethernet': 10,
+				'informatizzata': 10,
+				}
 	def __init__(
 				self, 
 				nome: str, 
@@ -26,27 +34,21 @@ class Aula:
 		self.informatizzata = informatizzata
 		self.campus = campus
 		self._occupation = []
-		self.weights = {
-						'occupation': 10,
-						'distance': 10,
-						'prese': 10,
-						'disegno': 10,
-						'ethernet': 10,
-						'informatizzata': 10,
-						}
 
+	def is_free(self, time=datetime.datetime.now().time()):
+		slot_number = (time.hour-8)*4 + time.minute//15
+		return self._occupation.occupation[slot_number].name == 'Vuota'
 
-	def __cmp_distance(self, other):
-		if self.userlocation is None:
-			return 0
-		else:
-			selfdist = geodist.distance(self.edificio.posizione, self.userlocation).km
-			otherdist = geodist.distance(other.edificio.posizione, self.userlocation).km
-			if selfdist < otherdist:
-				return 1
-			elif selfdist > otherdist:
-				return -1
-			else: return 0
+	def evaluate(self, posizione, orario):
+		def value_distance(posizione):
+			return min((50/(geodist.distance(posizione, self.edificio.posizione).m),1))
+		disegno =  self.weights['disegno'] * int(self.disegno)
+		prese = self.weights['prese'] * int(self.prese)
+		ethernet = self.weights['ethernet'] * int(self.ethernet)
+		informatizzata = self.weights['informatizzata'] * int(self.informatizzata)
+		distanza = self.weights['distance'] * value_distance(posizione)
+		occupazione = self.weights['occupation'] * self._occupation.evaluate(orario)
+		return disegno + prese + ethernet + informatizzata
 
 	def __cmp_prese(self, other):
 		if self.prese:
@@ -92,11 +94,10 @@ class Aula:
 	def __cmp(self, other):
 		disegno =  self.weights['disegno'] * self.__cmp_disegno(other)
 		prese = self.weights['prese'] * self.__cmp_prese(other)
-		distanza = self.weights['distance'] * self.__cmp_distance(other)
 		ethernet = self.weights['ethernet'] * self.__cmp_ethernet(other)
 		informatizzata = self.weights['informatizzata'] * self.__cmp_informatizzata(other)
 		# Occupazione
-		total = prese + disegno + distanza + ethernet + informatizzata
+		total = prese + disegno + ethernet + informatizzata
 		return total
 
 	def __str__(self):
@@ -145,6 +146,9 @@ class Edificio:
 		nuova_aula = Aula(nome, self, disegno, prese, ethernet, informatizzata, campus)
 		self.aule.append(nuova_aula)
 		self.aule.sort(reverse=True)
+	
+	def distance_from(self, location):
+		return geodist.distance(location, self.posizione)
 
 	def __str__(self):
 		return self.nome
@@ -194,20 +198,6 @@ with open('rooms.csv', 'r') as csvfile:
 			disegno = False
 			informatizzata = False
 		all_buildings[edificio].aggiungi_aula(nome, disegno, prese, ethernet, informatizzata, campus)
-
-''' OLD AULE CSV
-with open('aule.csv', 'r') as csvfile:
-	for line in csv.reader(csvfile):
-		building, name, draw, plug = line
-		draw = bool(draw)
-		plug = bool(plug)
-		all_buildings[building].aggiungi_aula(name, draw, plug)
-del csvfile, line, building, name, plug, draw
-
-for aula in aule.keys():
-	all_rooms[aula] = occupation[aula]
-# Considero 'occupation' come un dizionario con chiavi i nomi delle aule e valori le liste di eventi
-'''
 
 if __name__ == "__main__":  # Avoid execution if imported
 	__piazza = (45.4780440, 9.2256319)
