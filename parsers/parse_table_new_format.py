@@ -6,7 +6,11 @@ class Event:
 		self.name = name
 		self.starttime = starttime
 		self.duration = duration
+
 	def __str__(self):
+		return self.name +', '+ str(self.starttime)
+
+	def __repr__(self):
 		return self.name +', '+ str(self.starttime)
 
 	@property
@@ -34,7 +38,8 @@ class Occupation:
 		current_slot_number = (60*(starttime.hour-8) + starttime.minute)//15
 		current_event = self.occupation[current_slot_number]
 		if current_event.name == 'Vuota':
-			return current_event.endtime.time() - starttime
+			return (current_event.endtime.hour - starttime.hour)*60 + current_event.endtime.minute -starttime.minute
+		else: return -1
 
 # Here is html --> data per row
 def parse_row_get_occupation(row):
@@ -47,8 +52,8 @@ def parse_row_get_occupation(row):
 			length = int(tag.attrs['colspan'])
 			duration = interval*length
 			activity = tag.string
-			if activity[-8:] == '(ESAME) ':
-				activity = 'Esame'
+			# if activity[-8:] == '(ESAME) ':		# so che volevi alleggerire un eventuale output sostituendo 'Esame' alla spataffiata
+			# 	activity = 'Esame'					# ma dato che vogliamo solo la valutazione direi che toglierlo non è una brutta idea 
 			event = Event(activity, currenttime, duration)
 			occ.eventlist.append(event)
 			for i in range(length):
@@ -94,6 +99,3 @@ while len(rows) != 0:
 				break
 	else:
 		rooms[room] = occupation  # Se invece va tutto bene, salva semplicemente
-occ=Occupation()
-occ.eventlist = rooms['N.0.1']
-'''exit()'''
