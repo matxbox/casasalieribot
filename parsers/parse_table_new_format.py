@@ -78,24 +78,31 @@ def parse_row_get_occupation(row):
 			continue
 	return occ
 
-with open('occupazioni.html', 'r') as htmlfile:
-	parsed = bs4.BeautifulSoup(htmlfile, 'html.parser', parse_only=bs4.SoupStrainer(class_='scrollContent', name='tbody'))
-rows = parsed.find_all(class_='normalRow')[1:]
+def parse_file(passedfile):
+	'Reads an HTML filelike object and returns a dictionary of occupations'
+	parsed = bs4.BeautifulSoup(passedfile, 'html.parser', parse_only=bs4.SoupStrainer(class_='scrollContent', name='tbody'))
+	rows = parsed.find_all(class_='normalRow')[1:]
+	rooms = {}
+	while len(rows) != 0:
+		row = rows.pop(0)
+		if row.find(name='td', class_='dove') is not None:  # Se la riga contiene l'indicazione dell'aula...
+			room = row.find(name='td', class_='dove').a.string[1:-2]  # ...considera quello come il nome dell'attuale aula...
+		occupation = parse_row_get_occupation(row)  # ...e interpreta la riga. Ora abbiamo nome e dati, vanno salvati
+		if room in rooms.keys():  # Se la riga non ha il nome dell'aula usa il nome precedente
+			for i in range(1, 10):  # e salvalo nel dizionario aggiungendo _1, _2 eccetera
+				if '_'.join([room, str(i)]) in rooms.keys():
+					continue
+				else:
+					rooms['_'.join([room, str(i)])] = occupation
+					break
+		else:
+			rooms[room] = occupation  # Se invece va tutto bene, salva semplicemente
+	return rooms
 
-# Here is done parsing for every row, handling multiple rows per room
-rooms = {}
-rows = rows[:3]
-while len(rows) != 0:
-	row = rows.pop(0)
-	if row.find(name='td', class_='dove') is not None:  # Se la riga contiene l'indicazione dell'aula...
-		room = row.find(name='td', class_='dove').a.string[1:-2]  # ...considera quello come il nome dell'attuale aula...
-	occupation = parse_row_get_occupation(row)  # ...e interpreta la riga. Ora abbiamo nome e dati, vanno salvati
-	if room in rooms.keys():  # Se la riga non ha il nome dell'aula usa il nome precedente
-		for i in range(1, 10):  # e salvalo nel dizionario aggiungendo _1, _2 eccetera
-			if '_'.join([room, str(i)]) in rooms.keys():
-				continue
-			else:
-				rooms['_'.join([room, str(i)])] = occupation
-				break
-	else:
-		rooms[room] = occupation  # Se invece va tutto bene, salva semplicemente
+if __name__ == "__main__":
+	all_rooms = {}
+	with open('occupazioni.html', 'r') as htmlfile:
+		results = parse_file(htmlfile)
+		for nomeaula, occupation in results.items():
+			all_rooms[nomeaula] = occupation
+	''
