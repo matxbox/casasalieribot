@@ -174,7 +174,7 @@ def best_rooms(location):  #TODO: change criteria, this is useless
 	return best_rooms
 
 #%% Loads buildings' data
-with open('buildings.csv', 'r') as csvfile:
+with open('parsers\\buildings.csv', 'r') as csvfile:
 	for line in csv.reader(csvfile):
 		campus, name, lat, lon = line
 		lat = float(lat.replace(',', '.'))
@@ -183,7 +183,7 @@ with open('buildings.csv', 'r') as csvfile:
 del csvfile, line, name, lat, lon, campus
 
 #%% Loads rooms' data
-with open('rooms.csv', 'r') as csvfile:
+with open('parsers\\rooms.csv', 'r') as csvfile:
 	for row in csv.DictReader(csvfile):
 		campus, edificio, nome, prese, tipologia, ethernet, categoria = row.values()
 		prese = bool(prese)
@@ -202,6 +202,13 @@ with open('rooms.csv', 'r') as csvfile:
 if __name__ == "__main__":  # Avoid execution if imported
 	__piazza = (45.4780440, 9.2256319)
 	__lambrate = (45.4850472, 9.2372908)
+	from parsers.parse_table_new_format import parse_file
+	with open('occupazioni.html', 'r') as htmlfile:
+		results = parse_file(htmlfile)
+		for nomeaula, occupation in results.items():
+			try: all_rooms[nomeaula]._occupation = occupation
+			except KeyError: continue
+
 	#%% Check buildings sorting
 	print('Dalla __piazza: ')
 	print([str(i) for i in sorted_buildings(__piazza)])
