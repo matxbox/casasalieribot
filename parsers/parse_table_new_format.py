@@ -34,7 +34,8 @@ class Occupation:
 		new_occupation = self.occupation[slots_tbd:]
 		return new_eventlist, new_occupation
 				
-	def evaluate(self, starttime=datetime.time(hour=8)):
+	def evaluate(self, starttime=datetime.datetime.today()) -> int:
+		'Returns free minutes left, or -1 if busy'
 		current_slot_number = (60*(starttime.hour-8) + starttime.minute)//15
 		current_event = self.occupation[current_slot_number]
 		if current_event.name == 'Vuota':

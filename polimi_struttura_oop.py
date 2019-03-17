@@ -8,7 +8,7 @@ all_rooms={}
 class Aula:
 	'Crea una nuova aula con le sue proprietà. Richiede un oggetto Edificio in input'
 	weights = {
-				'occupation': 10,
+				'occupation': 10/60,  # Per minute of availability
 				'distance': 10,
 				'prese': 10,
 				'disegno': 10,
@@ -33,13 +33,14 @@ class Aula:
 		self.ethernet = ethernet
 		self.informatizzata = informatizzata
 		self.campus = campus
-		self._occupation = []
+		self._occupation = None
 
-	def is_free(self, time=datetime.datetime.now().time()):
+	def is_free(self, time=datetime.datetime.now().time()): #TODO: support for out-of-range time
 		slot_number = (time.hour-8)*4 + time.minute//15
 		return self._occupation.occupation[slot_number].name == 'Vuota'
 
 	def evaluate(self, posizione, orario):
+		'Returns evaluation of the room based on user location and datetime.datetime object'
 		def value_distance(posizione):
 			return min((50/(geodist.distance(posizione, self.edificio.posizione).m),1))
 		disegno =  self.weights['disegno'] * int(self.disegno)
@@ -47,9 +48,12 @@ class Aula:
 		ethernet = self.weights['ethernet'] * int(self.ethernet)
 		informatizzata = self.weights['informatizzata'] * int(self.informatizzata)
 		distanza = self.weights['distance'] * value_distance(posizione)
-		occupazione = self.weights['occupation'] * self._occupation.evaluate(orario)
-		return disegno + prese + ethernet + informatizzata
-
+		if self._occupation is not None:
+			occupazione = self.weights['occupation'] * self._occupation.evaluate(orario)
+			if occupazione < 0: return 0
+			else: return disegno + prese + ethernet + informatizzata + distanza + occupazione
+		else: return disegno + prese + ethernet + informatizzata
+			
 	def __cmp_prese(self, other):
 		if self.prese:
 			if other.prese:
@@ -128,8 +132,8 @@ class Aula:
 	@occupation.setter
 	def occupation(self, value):
 		self._occupation = value
-		self.edificio.aule.sort(reverse=True)
-		print('Edificio ' + str(self.edificio) + ' riordinato')
+		#self.edificio.aule.sort(reverse=True)
+		#print('Edificio ' + str(self.edificio) + ' riordinato')
 
 all_buildings = {}
 class Edificio:
@@ -164,14 +168,10 @@ def sorted_buildings(location, buildings=all_buildings):
 	list_with_distances.sort(key=lambda x: x[1])
 	return [pair[0] for pair in list_with_distances]  #Returns a sorted list of Edificio objects
 
-def best_rooms(location):  #TODO: change criteria, this is useless
-	"""Returns buildingname:[room, ] dict based on location.
-	"""
-	edifici_migliori = sorted_buildings(location)[:2]
-	best_rooms={}
-	for edificio in edifici_migliori:
-		best_rooms[edificio] = edificio.aule[:6]
-	return best_rooms
+def best_rooms(location, dtime, rooms=all_rooms.values(), limit=-1):
+	list_with_evaluation = [(room, room.evaluate(location, dtime)) for room in rooms]
+	list_with_evaluation.sort(key=lambda x: x[1], reverse=True)
+	return [pair[0] for pair in list_with_evaluation[:limit]]  #Returns a sorted list of Edificio objects
 
 #%% Loads buildings' data
 with open('parsers\\buildings.csv', 'r') as csvfile:
@@ -198,6 +198,7 @@ with open('parsers\\rooms.csv', 'r') as csvfile:
 			disegno = False
 			informatizzata = False
 		all_buildings[edificio].aggiungi_aula(nome, disegno, prese, ethernet, informatizzata, campus)
+del csvfile, row, campus, edificio, nome, prese, tipologia, ethernet, categoria, disegno, informatizzata
 
 if __name__ == "__main__":  # Avoid execution if imported
 	__piazza = (45.4780440, 9.2256319)
@@ -206,14 +207,13 @@ if __name__ == "__main__":  # Avoid execution if imported
 	with open('occupazioni.html', 'r') as htmlfile:
 		results = parse_file(htmlfile)
 		for nomeaula, occupation in results.items():
-			try: all_rooms[nomeaula]._occupation = occupation
+			try: all_rooms[nomeaula].occupation = occupation
 			except KeyError: continue
 
-	#%% Check buildings sorting
-	print('Dalla __piazza: ')
-	print([str(i) for i in sorted_buildings(__piazza)])
-	print('Dalla stazione: ')
-	print([str(i) for i in sorted_buildings(__lambrate)])
-	#%% Check combined buildings+rooms sorting
-	print([[str(j) for j in i.aule] for i in best_rooms(__piazza)])
-	print([[str(j) for j in i.aule] for i in best_rooms(__lambrate)])
+	#%% Test area
+	time = datetime.datetime(2019, 3, 18, hour=15, minute = 15)
+	for i in best_rooms(__piazza, time, limit=10):
+		if i.occupation is None: break
+		time_free = i.occupation.evaluate(time)
+		print(i, f'{time_free//60} h {time_free%60} min')
+	''
