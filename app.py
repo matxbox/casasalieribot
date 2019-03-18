@@ -132,6 +132,19 @@ def error(bot, update, errore):
 	try: del csic
 	except NameError: pass
 
+def reply_location(bot, update):
+	import polimi_struttura_oop as polimi
+	polimi.force_load_of_data()
+	location, time = update.message.location, update.message.date
+	import datetime
+	#time = datetime.datetime(2019, 3, 18, hour=15, minute = 15)  # TODO: elimina questa sovrascrittura
+	best_rooms = polimi.best_rooms((location.latitude, location.longitude), time, limit=10)
+	data = [(room.nome, room.occupation.evaluate(time)//60, room.occupation.evaluate(time)%60, room.current_event(time).endtime.strftime('%H:%M')) for room in best_rooms]
+	rows = [f'{values[0]}: libera per {values[1]} h {values[2]} min (fino alle {values[3]})' for values in data]
+	message = '\n'.join([str(i) for i in rows])
+	bot.send_message(chat_id=update.message.chat_id,
+						 text=message,
+						 )
 
 def avvio():
 	try: token = argv[1]
@@ -147,6 +160,8 @@ def avvio():
 									allow_reentry=True)
 	start_handler = CommandHandler('start', start)
 	general = MessageHandler(Filters.all, generalupdate)
+	location_msg = MessageHandler(Filters.location, reply_location)
+	dispatcher.add_handler(location_msg)
 	dispatcher.add_handler(start_handler)
 	dispatcher.add_handler(convers)
 	dispatcher.add_handler(general)
