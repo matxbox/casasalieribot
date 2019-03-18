@@ -35,9 +35,13 @@ class Aula:
 		self.campus = campus
 		self._occupation = None
 
-	def is_free(self, time=datetime.datetime.now().time()): #TODO: support for out-of-range time
+	def is_free(self,time): #TODO: support for out-of-range time
 		slot_number = (time.hour-8)*4 + time.minute//15
 		return self._occupation.occupation[slot_number].name == 'Vuota'
+
+	def current_event(self, time): #TODO: support for out-of-range time
+		slot_number = (time.hour-8)*4 + time.minute//15
+		return self._occupation.occupation[slot_number]
 
 	def evaluate(self, posizione, orario):
 		'Returns evaluation of the room based on user location and datetime.datetime object'
@@ -169,12 +173,12 @@ def sorted_buildings(location, buildings=all_buildings):
 	return [pair[0] for pair in list_with_distances]  #Returns a sorted list of Edificio objects
 
 def best_rooms(location, dtime, rooms=all_rooms.values(), limit=-1):
-	list_with_evaluation = [(room, room.evaluate(location, dtime)) for room in rooms]
+	list_with_evaluation = [(room, room.evaluate(location, dtime)) for room in rooms if room.occupation is not None]
 	list_with_evaluation.sort(key=lambda x: x[1], reverse=True)
 	return [pair[0] for pair in list_with_evaluation[:limit]]  #Returns a sorted list of Edificio objects
 
 #%% Loads buildings' data
-with open('parsers\\buildings.csv', 'r') as csvfile:
+with open('parsers/buildings.csv', 'r') as csvfile:
 	for line in csv.reader(csvfile):
 		campus, name, lat, lon = line
 		lat = float(lat.replace(',', '.'))
@@ -183,7 +187,7 @@ with open('parsers\\buildings.csv', 'r') as csvfile:
 del csvfile, line, name, lat, lon, campus
 
 #%% Loads rooms' data
-with open('parsers\\rooms.csv', 'r') as csvfile:
+with open('parsers/rooms.csv', 'r') as csvfile:
 	for row in csv.DictReader(csvfile):
 		campus, edificio, nome, prese, tipologia, ethernet, categoria = row.values()
 		prese = bool(prese)
@@ -200,9 +204,7 @@ with open('parsers\\rooms.csv', 'r') as csvfile:
 		all_buildings[edificio].aggiungi_aula(nome, disegno, prese, ethernet, informatizzata, campus)
 del csvfile, row, campus, edificio, nome, prese, tipologia, ethernet, categoria, disegno, informatizzata
 
-if __name__ == "__main__":  # Avoid execution if imported
-	__piazza = (45.4780440, 9.2256319)
-	__lambrate = (45.4850472, 9.2372908)
+def force_load_of_data():
 	from parsers.parse_table_new_format import parse_file
 	with open('occupazioni.html', 'r') as htmlfile:
 		results = parse_file(htmlfile)
@@ -210,6 +212,11 @@ if __name__ == "__main__":  # Avoid execution if imported
 			try: all_rooms[nomeaula].occupation = occupation
 			except KeyError: continue
 
+if __name__ == "__main__":  # Avoid execution if imported
+	__piazza = (45.4780440, 9.2256319)
+	__lambrate = (45.4850472, 9.2372908)
+
+	force_load_of_data()
 	#%% Test area
 	time = datetime.datetime(2019, 3, 18, hour=15, minute = 15)
 	for i in best_rooms(__piazza, time, limit=10):
