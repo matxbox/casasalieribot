@@ -173,7 +173,7 @@ def sorted_buildings(location, buildings=all_buildings):
 	return [pair[0] for pair in list_with_distances]  #Returns a sorted list of Edificio objects
 
 def best_rooms(location, dtime, rooms=all_rooms.values(), limit=-1):
-	list_with_evaluation = [(room, room.evaluate(location, dtime)) for room in rooms if room.occupation is not None]
+	list_with_evaluation = [(room, room.evaluate(location, dtime)) for room in rooms if (room.occupation is not None and room.is_free(dtime))]
 	list_with_evaluation.sort(key=lambda x: x[1], reverse=True)
 	return [pair[0] for pair in list_with_evaluation[:limit]]  #Returns a sorted list of Edificio objects
 
